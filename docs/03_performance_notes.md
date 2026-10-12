@@ -17,6 +17,19 @@ Dataset: FimaNfipClaims, 2,721,780 rows, raw Parquet as extracted (~13k small fi
 - `count()` on Parquet can be answered mostly from file footers, so it mostly measures listing and opening ~13k files. Add a query that reads a column too.
 - Record the same measures after compaction (target: a few large files per yearOfLoss, or Delta `OPTIMIZE`) and report the ratio.
 
-## After compaction
+## Bronze Delta table (first write, unpartitioned)
+
+`workspace.bronze.fima_nfip_claims`, written by `spark/01_bronze_claims.py`.
+
+| Measure | Raw Parquet in Volume | Bronze Delta |
+|---------|----------------------|--------------|
+| Files | ~13.4k | 9 |
+| Size | 689 MB (local), 390 MB zipped | 180,045,227 bytes (~180 MB) |
+| `count()` | 7.9 s, 7.1 s | _to time_ |
+| group by year | 6.4 s | _to time_ |
+
+Size note: the smaller size is likely because Spark wrote a few large files, so Parquet compresses repeated string values far better than many tiny files do. This is unverified; compare compression settings before claiming it.
+
+## After further experiments (partitioning, OPTIMIZE, Z-ORDER)
 
 _To fill in during Phase 3._
