@@ -25,10 +25,16 @@ Dataset: FimaNfipClaims, 2,721,780 rows, raw Parquet as extracted (~13k small fi
 |---------|----------------------|--------------|
 | Files | ~13.4k | 9 |
 | Size | 689 MB (local), 390 MB zipped | 180,045,227 bytes (~180 MB) |
-| `count()` | 7.9 s, 7.1 s | 1.4 s, 0.7 s, 0.5 s |
-| group by year | 6.4 s | 2.4 s, 0.9 s, 0.8 s |
+| `count()` | 7.9, 7.1, then 8.1, 5.8, 5.7 s | 1.4, 0.7, 0.5 s |
+| group by year | 6.4, then 6.2, 5.8, 5.6 s | 2.4, 0.9, 0.8 s |
 
-Reading the bronze runs: the first run is the slowest (1.4 s, 2.4 s) and later runs speed up, which looks like warm-up or caching. First-run comparison is about 5x for count (7.9 s vs 1.4 s) and about 2.7x for group by (6.4 s vs 2.4 s). Raw runs were not repeated enough to compare warm runs fairly; rerun the raw path 3 times to get a matching warm set. The comparison also mixes two changes (Delta format and file layout), so it does not show which one helped.
+Reading the runs (latest 3 runs of each, same notebook session):
+
+- First run: count 8.1 s vs 1.4 s (about 5.8x), group by 6.2 s vs 2.4 s (about 2.6x).
+- Third run: count 5.7 s vs 0.5 s (about 11x), group by 5.6 s vs 0.8 s (about 7x).
+- Raw reads barely improved with repeats (8.1 to 5.7 s). Bronze improved a lot (1.4 to 0.5 s). The cause is not confirmed; caching of file metadata and data is one candidate.
+- The comparison mixes two changes (Delta format and file layout, ~13.4k files down to 9), so it does not show which one helped. A later experiment should isolate them, for example by rewriting the raw data as plain Parquet in 9 files.
+- Timings come from a single serverless session and a free tier, so treat them as indicative, not exact.
 
 Size note: the smaller size is likely because Spark wrote a few large files, so Parquet compresses repeated string values far better than many tiny files do. This is unverified; compare compression settings before claiming it.
 
