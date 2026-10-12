@@ -25,8 +25,10 @@ Dataset: FimaNfipClaims, 2,721,780 rows, raw Parquet as extracted (~13k small fi
 |---------|----------------------|--------------|
 | Files | ~13.4k | 9 |
 | Size | 689 MB (local), 390 MB zipped | 180,045,227 bytes (~180 MB) |
-| `count()` | 7.9 s, 7.1 s | _to time_ |
-| group by year | 6.4 s | _to time_ |
+| `count()` | 7.9 s, 7.1 s | 1.4 s, 0.7 s, 0.5 s |
+| group by year | 6.4 s | 2.4 s, 0.9 s, 0.8 s |
+
+Reading the bronze runs: the first run is the slowest (1.4 s, 2.4 s) and later runs speed up, which looks like warm-up or caching. First-run comparison is about 5x for count (7.9 s vs 1.4 s) and about 2.7x for group by (6.4 s vs 2.4 s). Raw runs were not repeated enough to compare warm runs fairly; rerun the raw path 3 times to get a matching warm set. The comparison also mixes two changes (Delta format and file layout), so it does not show which one helped.
 
 Size note: the smaller size is likely because Spark wrote a few large files, so Parquet compresses repeated string values far better than many tiny files do. This is unverified; compare compression settings before claiming it.
 
