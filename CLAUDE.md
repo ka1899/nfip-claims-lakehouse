@@ -22,7 +22,7 @@ See README.md for business questions and docs/ROADMAP.md for the phased plan.
 
 ## Current status
 Phase 1 (setup) in progress.
-- Done: Python env, ingestion/extract_openfema.py (paginated, resumable, partitioned Parquet), FimaNfipClaims pulled locally to data/raw (2,721,780 rows, ~13,377 files, all columns strings), DuckDB CLI installed, Databricks Free Edition signed up, schemas workspace.bronze and workspace.silver created, Volume workspace.bronze.raw_files created, FimaNfipClaims zip uploaded and unzipped there (took ~22 min for ~13k small files), Spark row count in Databricks = 2,721,780 (matches API count), 74 columns.
-- Next: .env secrets handling, then Phase 3 bronze Delta job (keep the 13k-small-files read time as the 'before' number for compaction).
+- Done: Python env, ingestion/extract_openfema.py (paginated, resumable, partitioned Parquet), FimaNfipClaims pulled locally to data/raw (2,721,780 rows, ~13,377 files, all columns strings), DuckDB CLI installed, Databricks Free Edition signed up, schemas workspace.bronze and workspace.silver created, Volume workspace.bronze.raw_files created, FimaNfipClaims zip uploaded and unzipped there (took ~22 min for ~13k small files), Spark row count in Databricks = 2,721,780 (matches API count), 74 columns. Baseline timings in docs/03_performance_notes.md. Bronze Delta table workspace.bronze.fima_nfip_claims written by spark/01_bronze_claims.py (unpartitioned, all strings), row count reconciled to 2,721,780.
+- Next: record bronze numFiles, then Phase 3 silver (types, dedup) and the compaction / partitioning experiments with before/after timings. .env secrets handling when a credential is needed.
 - Not started: Snowflake trial (start it just before Phase 4), .env secrets handling.
 - Learner mode: Khushi does account actions herself and pastes on-screen text; explain the why of each step; never ask for secrets in chat.
