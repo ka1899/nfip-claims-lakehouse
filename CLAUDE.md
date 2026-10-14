@@ -20,9 +20,37 @@ See README.md for business questions and docs/ROADMAP.md for the phased plan.
 - Never commit secrets or raw data. Credentials via .env (gitignored). Data lives in data/ (gitignored).
 - Commit small and often, with clear messages.
 
-## Current status
-Phase 1 (setup) in progress.
-- Done: Python env, ingestion/extract_openfema.py (paginated, resumable, partitioned Parquet), FimaNfipClaims pulled locally to data/raw (2,721,780 rows, ~13,377 files, all columns strings), DuckDB CLI installed, Databricks Free Edition signed up, schemas workspace.bronze and workspace.silver created, Volume workspace.bronze.raw_files created, FimaNfipClaims zip uploaded and unzipped there (took ~22 min for ~13k small files), Spark row count in Databricks = 2,721,780 (matches API count), 74 columns. Baseline timings in docs/03_performance_notes.md. Bronze Delta table workspace.bronze.fima_nfip_claims written by spark/01_bronze_claims.py (unpartitioned, all strings), row count reconciled to 2,721,780.
-- Next: record bronze numFiles, then Phase 3 silver (types, dedup) and the compaction / partitioning experiments with before/after timings. .env secrets handling when a credential is needed.
-- Not started: Snowflake trial (start it just before Phase 4), .env secrets handling.
-- Learner mode: Khushi does account actions herself and pastes on-screen text; explain the why of each step; never ask for secrets in chat.
+## Current status (updated 2026-10-14)
+Goal: a resume-worthy end-to-end project by Sunday 2026-10-18. Scope is trimmed (see Plan).
+
+Done
+- Extraction: ingestion/extract_openfema.py (paginated, resumable, idempotent, partitioned Parquet). FimaNfipClaims: 2,721,780 rows, matches API count.
+- Databricks Free Edition: schemas workspace.bronze and workspace.silver, Volume workspace.bronze.raw_files, bronze Delta table workspace.bronze.fima_nfip_claims (spark/01_bronze_claims.py, 9 files, 2,721,780 rows, all strings).
+- Baseline vs bronze timings in docs/03_performance_notes.md (raw ~13.4k files vs 9 Delta files, first-run speedup ~5.8x count and ~2.6x group by).
+- Khushi's raw profiling queries sql/00_profiling/01 to 07 and docs/00_profiling.md (hers; review, do not rewrite).
+- Silver notebook written: spark/02_silver_claims.py (29 kept columns, snake_case, DECIMAL(18,2) money, blanks to NULL, negative-payment flag, export to Volume workspace.silver.exports). Cast check passed (no values lost, no money rounding). Khushi was running the remaining cells (write, reconcile, export) in Databricks; confirm silver row count = 2,721,780.
+
+Decisions made
+- One branch: work on main (the old claude/... branch can be deleted). Push to main.
+- Money is DECIMAL(18,2); keep NULL distinct from 0; keep the 86 negative building payments (flagged, not clamped).
+- Unpartitioned bronze first; partitioning/OPTIMIZE experiments are optional extras.
+
+Known gaps (say so honestly in the README)
+- Claims data has no claim close date and no premium column, so README Q3 (time to close) and Q4 (underpriced segments) cannot be answered from claims alone. Cut or replace them.
+- Open items from profiling: prove amountPaidOnBuildingClaim has no unparseable values with COUNT(col) vs COUNT(TRY_CAST); save the query behind "150,348 rows exactly 0"; investigate the 10.7M maximum payment; profile the other 11 indicator columns.
+
+Plan to Sunday
+1. Wed/Thu: finish silver and export; start Snowflake trial (Standard, AWS), warehouse XSMALL auto-suspend 60s; load silver Parquet via PUT + COPY INTO to staging; core/star schema DDL (Claude scaffolds DDL; Khushi writes the transformation SQL).
+2. Thu/Fri: extract DisasterDeclarationsSummaries with the same script (for Q5).
+3. Fri/Sat: Khushi writes 5 or 6 analysis queries (Q1 loss by state/county over time, Q2 payout ratios by segment, Q5 spikes vs declarations), documented in docs/; Claude reviews. Data quality test harness and Streamlit dashboard shell by Claude.
+4. Sun: README with screenshots, architecture diagram, resume bullets.
+
+Cut for now: FimaNfipPolicies, incremental loads, extra performance experiments.
+
+Open question: Snowflake trial not yet confirmed started.
+
+## Learner mode
+- Khushi does account actions herself (Snowflake, Databricks) and never pastes passwords, tokens or codes into chat. Credentials go in .env (gitignored); show only variable names.
+- Explain the why of each step briefly. Prefer bigger chunks over one tiny step at a time; she wants speed.
+- No em dashes in any text.
+- Environment note: a cloud session cannot reach fema.gov. A local session on her Mac can run the extractor, DuckDB, git and the Databricks/Snowflake CLIs.
