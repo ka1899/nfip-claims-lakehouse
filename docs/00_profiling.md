@@ -1,6 +1,6 @@
 # Raw-layer profiling: FimaNfipClaims
 
-Run dates: 2026-10-12 (queries 1 to 3) and 2026-10-14 (queries 4 to 7). Engine: DuckDB, reading the raw Parquet directly (`data/raw/FimaNfipClaims/`, Hive-partitioned by `yearOfLoss`). Queries are in `sql/00_profiling/`.
+Run dates: 2026-10-12 (queries 1 to 3) and 2026-10-14 (queries 4 to 7). Engine: DuckDB, reading the raw Parquet directly (`data/raw/FimaNfipClaims/`, Hive-partitioned by `yearOfLoss`). Queries are in `sql/00_profiling/`. Query 9 is the exception: it runs on the silver table in Databricks SQL (2026-10-14), to confirm silver against these raw numbers.
 
 Purpose: confirm the extraction landed the whole dataset, once, before building any layer on top of it.
 
@@ -14,6 +14,7 @@ Purpose: confirm the extraction landed the whole dataset, once, before building 
 | 6 | `06_negative_building_payments.sql` | Which claims have a negative building payment? | 86 rows, from -34.94 to -201,667.50 |
 | 7 | `07_date_of_loss_parse.sql` | Does every `dateOfLoss` value parse as a date? | 2,721,780 non-NULL values, all 2,721,780 parse |
 | 8 | `08_building_claim_amount_quality.sql` | Does every non-missing `amountPaidOnBuildingClaim` parse as a number, and how many are negative or zero? | 566,351 NULL, 0 empty, 0 unparseable, 86 negative, 150,348 zero |
+| 9 | `09_silver_building_payment_reconcile.sql` | Did silver cleaning (blanks to NULL, DECIMAL cast, negative flag) change the building payment counts? | 566,351 NULL, 86 negative, 150,348 zero, 86 flagged; all match query 8 |
 
 ## Findings
 
@@ -27,6 +28,7 @@ Purpose: confirm the extraction landed the whole dataset, once, before building 
 - **Negative payments:** 86 rows have a negative building payment. The most negative are recent (2024, 2024, 2022), and several are round numbers such as -5,000.00. They may be refunds, recoveries or corrections, but that is a guess; nothing in the data confirms it yet.
 - **Very large payment:** the maximum is 10,741,476.93, which looks high for one building claim. From memory, NFIP building coverage is capped at $250,000 (residential) and $500,000 (non-residential); that figure has not been verified against FEMA documentation. Check these rows before using the amounts in loss analysis.
 - **Loss dates:** all 2,721,780 `dateOfLoss` values are present and parse as dates in DuckDB, so no special handling is needed for this column. DuckDB and Snowflake may accept different date formats, so this check should be repeated in Snowflake.
+- **Silver matches raw:** query 9 on `workspace.silver.fima_nfip_claims` returns the same NULL, negative and zero counts as query 8, so turning blanks into NULL and casting to `DECIMAL(18,2)` lost or changed no building payments. The `is_negative_building_payment` flag counts 86, the same as the amount filter, so the flag logic is correct.
 
 ## Not yet verified
 
