@@ -28,7 +28,7 @@ Done
 - Databricks Free Edition: schemas workspace.bronze and workspace.silver, Volume workspace.bronze.raw_files, bronze Delta table workspace.bronze.fima_nfip_claims (spark/01_bronze_claims.py, 9 files, 2,721,780 rows, all strings).
 - Baseline vs bronze timings in docs/03_performance_notes.md (raw ~13.4k files vs 9 Delta files, first-run speedup ~5.8x count and ~2.6x group by).
 - Khushi's raw profiling queries sql/00_profiling/01 to 07 and docs/00_profiling.md (hers; review, do not rewrite).
-- Silver notebook written: spark/02_silver_claims.py (29 kept columns, snake_case, DECIMAL(18,2) money, blanks to NULL, negative-payment flag, export to Volume workspace.silver.exports). Cast check passed (no values lost, no money rounding). Khushi was running the remaining cells (write, reconcile, export) in Databricks; confirm silver row count = 2,721,780.
+- Silver notebook written: spark/02_silver_claims.py (29 kept columns, snake_case, DECIMAL(18,2) money, blanks to NULL, negative-payment flag, export to Volume workspace.silver.exports). Cast check passed (no values lost, no money rounding). Silver table workspace.silver.fima_nfip_claims written 2026-10-14: 2,721,780 rows, equal to bronze. Exported as one Parquet file to /Volumes/workspace/silver/exports/fima_nfip_claims/ (plus Spark _SUCCESS/_committed/_started marker files). county_code has 62,442 NULLs. Still to check: NULL count of amount_paid_on_building_claim = 566,351, is_negative_building_payment true = 86, zero building payments = 150,348.
 
 Decisions made
 - One branch: work on main (the old claude/... branch can be deleted). Push to main.
@@ -37,7 +37,8 @@ Decisions made
 
 Known gaps (say so honestly in the README)
 - Claims data has no claim close date and no premium column, so README Q3 (time to close) and Q4 (underpriced segments) cannot be answered from claims alone. Cut or replace them.
-- Open items from profiling: prove amountPaidOnBuildingClaim has no unparseable values with COUNT(col) vs COUNT(TRY_CAST); save the query behind "150,348 rows exactly 0"; investigate the 10.7M maximum payment; profile the other 11 indicator columns.
+- Open items from profiling: investigate the 10.7M maximum payment; profile the other 11 indicator columns. (Query 08 closed the unparseable-values and 150,348-zeros items.)
+- Databricks shows an "automated browser control detected" banner and does not support it, so Claude does not drive the Databricks UI through Chrome. Khushi pastes outputs, or use the Databricks CLI.
 
 Plan to Sunday
 1. Wed/Thu: finish silver and export; start Snowflake trial (Standard, AWS), warehouse XSMALL auto-suspend 60s; load silver Parquet via PUT + COPY INTO to staging; core/star schema DDL (Claude scaffolds DDL; Khushi writes the transformation SQL).
