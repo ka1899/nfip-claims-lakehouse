@@ -75,18 +75,21 @@ aggs = []
 for c, e in casts.items():
     aggs.append(F.count(F.col(f"`{c}`")).alias(f"{c}__before"))
     aggs.append(F.count(F.expr(e)).alias(f"{c}__after"))
-counts = df0.agg(*aggs).first().asDict()
+first_row = df0.agg(*aggs).first()
+assert first_row is not None, "bronze is empty"
+counts = first_row.asDict()
 
 failures = {c: (counts[f"{c}__before"], counts[f"{c}__after"]) for c in casts
             if counts[f"{c}__before"] != counts[f"{c}__after"]}
 print("columns where a cast dropped values (before, after):", failures or "none")
 
 # Money values with more than 2 decimals would be silently rounded by DECIMAL(18,2). Count them.
-rounded = df0.agg(*[
+rounded_row = df0.agg(*[
     F.sum(F.when(F.abs(F.expr(f"try_cast(`{c}` AS DOUBLE)") - F.expr(f"try_cast(`{c}` AS DECIMAL(18,2))")) > 0.005, 1)
           .otherwise(0)).alias(c)
     for c in MONEY_COLS
-]).first().asDict()
+]).first()
+rounded = rounded_row.asDict() if rounded_row is not None else {}
 print("money values that would round:", {k: v for k, v in rounded.items() if v})
 
 assert not failures, f"fix the casts or the column type for: {failures}"
