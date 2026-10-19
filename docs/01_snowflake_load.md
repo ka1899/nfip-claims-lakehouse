@@ -26,6 +26,8 @@ SQL files are in `sql/01_staging/`, run in order.
 
 Silver to staging should change no counts. Any difference means the load, not the data, is wrong.
 
+**Result (2026-10-18):** `sql/01_staging/03_reconcile_stg_fima_nfip_claims.sql` (Khushi's query) returned exactly the expected value for all 7 checks. Zero discrepancies between silver and Snowflake staging. Together with the earlier checks, row counts and these value checks now match across every layer: API, raw Parquet, bronze, silver, Snowflake staging.
+
 ## Design choices
 
 - **Internal stage, not S3.** No cloud bucket or IAM setup; enough for a one-off load of a few hundred MB.
