@@ -24,6 +24,6 @@ Output: top 5 states per decade, 30 rows (run 2026-10-19).
 Findings:
 - **Three Gulf states dominate.** Louisiana and Texas are in the top 5 in all six decades; Florida in five of six.
 - **Losses are concentrated in single decades and states.** Louisiana's 2000s total ($14.63B) is 3.6 times the next state in that decade. Florida's 2020s total ($13.84B) is 10.8 times the next state.
-- **The Northeast enters in the 2010s.** New Jersey and New York rank #2 and #3, the only decade where a non-Gulf state ranks above #4 apart from NJ and NC at #4 and #5.
+- **The Northeast enters in the 2010s.** New Jersey and New York rank #2 and #3. It is the only decade where #2 is not a Gulf state.
 - **Severity has grown.** Paid per claim: Texas 1970s about $9,800; Louisiana 2000s about $61,600; Texas 2010s about $79,400; Florida 2020s about $90,600 (nominal, all claims including unpaid).
 - The spikes match well-known storms (Katrina 2005 for Louisiana, Sandy 2012 for NJ/NY, Harvey 2017 for Texas, Ian 2022 for Florida). That link is from general knowledge, not yet checked in the data; query 5 tests it against disaster declarations.
