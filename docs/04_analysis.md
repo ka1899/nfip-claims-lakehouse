@@ -62,3 +62,24 @@ Findings:
 - Business meaning: for an insurer or reinsurer, NFIP flood exposure is a concentration risk problem. A single severe storm over one of a few dozen counties can drive a large share of total losses.
 
 Note: `cum_share < 0.8` counts the counties before the 80% line. The county that crosses it makes 79 needed to reach 80% (2.69%); the conclusion is the same.
+
+## 3. How do flood payouts change year over year?
+
+File: `03_yoy_trend.sql`. SQL: aggregate per year in a CTE, then `LAG(total_paid) OVER (ORDER BY year_of_loss)` in the outer query for the prior year, with `NULLIF` guarding the percent-change division. Complete years only (1978 to 2024, 47 rows; run 2026-10-23).
+
+Largest years:
+
+| Year | Claims | Paid | YoY change |
+|------|--------|------|------------|
+| 2005 | 277,027 | $17.77B | +696.0% |
+| 2017 | 145,681 | $10.66B | +138.5% |
+| 2012 | 175,804 | $9.74B | +300.6% |
+| 2024 | 102,016 | $8.77B | +795.1% |
+| 2022 | 60,209 | $5.26B | +168.9% |
+
+Findings:
+- **Losses come in catastrophe years, not a smooth trend.** The top 5 years hold 58.6% of the $89.0B paid across all 47 complete years. The median year pays $710M; 2005 alone paid $17.77B, 25 times the median.
+- **Every spike is followed by a crash.** The years after the big spikes fell 96.4% (2006), 94.9% (2013), 85.4% (2018) and 81.4% (2023). Year-over-year change is driven by single events, so it is a poor guide to the next year.
+- **Percent change can mislead on a small base.** The largest increase is 1989 (+1,196.8%), but that is $51M to $662M; 2005's +696.0% is a $15.5B increase. Absolute and percent change need to be read together.
+- **Quiet years have become more expensive (nominal).** Low years in the 1980s paid about $50M to $250M; recent low years (2019, 2020, 2023) paid about $0.9B to $1.5B. Part of this is inflation and growth in insured property; it has not been adjusted.
+- **Claims are getting more expensive in big years.** Paid per claim was about $64,100 in 2005 and about $86,000 in 2024 (nominal).
