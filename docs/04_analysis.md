@@ -156,4 +156,4 @@ How the logic got there: a first version used `LEFT JOIN ... WHERE d.state IS NU
 Findings:
 - **Undeclared floods are real but small.** The largest undeclared month is $199M, about 1/70 of Katrina's month.
 - **Texas and Florida account for 7 of the 10**, consistent with frequent local rain flooding in those states.
-- Limitation: matching is at state and month level, so a declaration elsewhere in the same state and month counts as a match even if it covered other counties. A county-level match is possible but county codes differ in format between the two datasets and was not attempted.
+- Limitation: matching is at state and month level, so a declaration elsewhere in the same state and month counts as a match even if it covered other counties. A county-level match is possible (claims use 5-digit FIPS such as 48201; declarations split it into `fips_state_code` and `fips_county_code`, with `000` meaning statewide) but was not attempted.
