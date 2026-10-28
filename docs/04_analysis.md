@@ -83,3 +83,25 @@ Findings:
 - **Percent change can mislead on a small base.** The largest increase is 1989 (+1,196.8%), but that is $51M to $662M; 2005's +696.0% is a $15.5B increase. Absolute and percent change need to be read together.
 - **Quiet years have become more expensive (nominal).** Low years in the 1980s paid about $50M to $250M; recent low years (2019, 2020, 2023) paid about $0.9B to $1.5B. Part of this is inflation and growth in insured property; it has not been adjusted.
 - **Claims are getting more expensive in big years.** Paid per claim was about $64,100 in 2005 and about $86,000 in 2024 (nominal).
+
+## 4. How do payouts differ by flood zone risk?
+
+File: `04_payout_by_flood_zone.sql`. SQL: `CASE WHEN ... LIKE` to group the many `rated_flood_zone` codes into FEMA risk levels, grouping by the alias, and `AVG` against `MEDIAN` to show skew. Run 2026-10-28.
+
+Check first: an unfiltered version of the grouping (all claims) returned 1,801,886 + 686,045 + 143,367 + 90,482 = 2,721,780, so every claim falls in exactly one group.
+
+| Zone group | All claims | Paid claims | Paid rate | Avg paid | Avg payout ratio | Median payout ratio |
+|------------|-----------|-------------|-----------|----------|------------------|---------------------|
+| A - High risk | 1,801,886 | 1,433,026 | 79.5% | $45,601 | 0.303 | 0.149 |
+| B/C/X - Moderate/Low risk | 686,045 | 507,721 | 74.0% | $40,744 | 0.216 | 0.091 |
+| Other/unknown | 143,367 | 106,622 | 74.4% | $7,089 | 0.284 | 0.150 |
+| V - Coastal high risk | 90,482 | 66,950 | 74.0% | $43,405 | 0.251 | 0.083 |
+
+(Paid rate = paid claims / all claims, from the two runs.)
+
+Findings:
+- **One in four claims comes from moderate/low-risk zones.** 686,045 claims (25.2%) are in B, C or X zones, where flood insurance is usually not required. A paid claim there averages $40,744, 89% of the high-risk A-zone average. "Low risk" does not mean low severity.
+- **A typical paid claim recovers a small share of its coverage.** The median payout ratio is 8% to 15% across zone groups.
+- **Averages are pulled up by a few large claims.** The average payout ratio is 2 to 3 times the median in every group; the gap is largest in V zones (0.251 against 0.083), so coastal claims are mostly small with a few near-total losses.
+- **V zones have the lowest median ratio despite the highest risk label.** One possible reason is higher coverage on coastal properties, which lowers the ratio for the same dollar damage. This has not been checked.
+- **Other/unknown claims average only $7,089.** These may be older claims recorded before current zone codes, in smaller nominal dollars. Not yet checked; a breakdown by `loss_decade` would test it.
