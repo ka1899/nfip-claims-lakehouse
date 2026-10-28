@@ -26,7 +26,7 @@ Findings:
 - **Losses are concentrated in single decades and states.** Louisiana's 2000s total ($14.63B) is 3.6 times the next state in that decade. Florida's 2020s total ($13.84B) is 10.8 times the next state.
 - **The Northeast enters in the 2010s.** New Jersey and New York rank #2 and #3. It is the only decade where #2 is not a Gulf state.
 - **Severity has grown.** Paid per claim: Texas 1970s about $9,800; Louisiana 2000s about $61,600; Texas 2010s about $79,400; Florida 2020s about $90,600 (nominal, all claims including unpaid).
-- The spikes match well-known storms (Katrina 2005 for Louisiana, Sandy 2012 for NJ/NY, Harvey 2017 for Texas, Ian 2022 for Florida). That link is from general knowledge, not yet checked in the data; query 5 tests it against disaster declarations.
+- The spikes match named storms: Katrina 2005 for Louisiana, Sandy 2012 for NJ/NY, Harvey 2017 for Texas, Ian 2022 and Helene 2024 for Florida. Query 5 confirms these against FEMA's disaster declarations.
 
 ## 2. How concentrated are flood losses across counties?
 
@@ -105,3 +105,55 @@ Findings:
 - **Averages are pulled up by a few large claims.** The average payout ratio is 2 to 3 times the median in every group; the gap is largest in V zones (0.251 against 0.083), so coastal claims are mostly small with a few near-total losses.
 - **V zones have the lowest median ratio despite the highest risk label.** One possible reason is higher coverage on coastal properties, which lowers the ratio for the same dollar damage. This has not been checked.
 - **Other/unknown claims average only $7,089.** These may be older claims recorded before current zone codes, in smaller nominal dollars. Not yet checked; a breakdown by `loss_decade` would test it.
+
+## 5. Do claim spikes line up with disaster declarations?
+
+Data: `NFIP.STAGING.STG_DISASTER_DECLARATIONS` (70,571 rows, one per declared area per disaster), extracted with the same script and loaded to Snowflake (`sql/01_staging/04` and `05`). Only water-related incident types are used: Flood, Hurricane, Severe Storm, Tropical Storm, Coastal Storm, Typhoon, Dam/Levee Break, Tropical Depression. Grain: one row per state per loss month, complete years only. Run 2026-10-28.
+
+### 5a. The 20 biggest state-months, with their declarations
+
+File: `05_top_spikes_vs_declarations.sql`. SQL: two CTEs and a `LEFT JOIN` on state and month. The declarations table has one row per county, and Katrina has two declarations in Louisiana (major disaster DR-1603 and emergency EM-3212), so a direct join would duplicate claim months and double their totals (fan-out). The `declared` CTE prevents this with `GROUP BY state, begin_month` and `LISTAGG(DISTINCT declaration_title, '; ')`, giving exactly one row per state-month; this was checked on Louisiana, August 2005 (one row, "HURRICANE KATRINA").
+
+| State | Month | Declaration | Claims | Paid |
+|-------|-------|-------------|--------|------|
+| LA | 2005-08 | Hurricane Katrina | 177,017 | $13.38B |
+| TX | 2017-08 | Hurricane Harvey | 90,663 | $8.94B |
+| FL | 2024-09 | Hurricane Helene | 55,053 | $6.47B |
+| FL | 2022-09 | Hurricane Ian | 47,194 | $4.85B |
+| NJ | 2012-10 | Hurricane Sandy | 74,435 | $4.33B |
+| NY | 2012-10 | Hurricane Sandy | 57,300 | $4.21B |
+| LA | 2016-08 | Severe storms and flooding | 30,093 | $2.54B |
+| MS | 2005-08 | Hurricane Katrina | 19,162 | $2.53B |
+| TX | 2008-09 | Hurricane Ike | 44,486 | $2.24B |
+| FL | 2004-09 | Hurricanes Ivan, Frances, Jeanne | 28,404 | $1.22B |
+
+(Rows 11 to 20: Milton FL 2024-10, Irma FL 2017-09, Tropical Storm Allison TX 2001-06, Tropical Storm Imelda TX 2019-09, Ida LA 2021-08, Florence NC 2018-09, Irene NJ 2011-08, severe storms LA 1995-05, Isaac LA 2012-08, severe storms TX 2015-05.)
+
+Findings:
+- **All 20 of the largest flood months match a FEMA disaster declaration.**
+- **Twenty state-months hold 65% of all losses:** $58.2B of the $89.0B paid in 1978 to 2024.
+- **Rainfall, not hurricane strength, drives flood losses.** Three of the top 20 are not named storms (Louisiana August 2016 $2.54B, Louisiana May 1995 $586M, Texas May 2015 $489M), and two are tropical storms below hurricane strength (Allison 2001 $979M, Imelda 2019 $754M).
+
+### 5b. The largest flood months with no declaration
+
+File: `06_undeclared_flood_months.sql`. SQL: `NOT EXISTS` with a correlated subquery that matches state and a date range (`loss_month BETWEEN` the declaration's begin month and end month, with `COALESCE` to the begin date for the 727 declarations with no end date). `NOT EXISTS` only tests for at least one match, so overlapping declarations cannot duplicate rows.
+
+How the logic got there: a first version used `LEFT JOIN ... WHERE d.state IS NULL` (anti-join) on the same-month match from 5a. It flagged months such as Texas September 2017 (Harvey began 2017-08-25), Pennsylvania September 2021 (Ida remnants) and Tennessee May 2010 as undeclared, because those events began in the previous month. Matching on the declaration's full date range removed them.
+
+| State | Month | Claims | Paid |
+|-------|-------|--------|------|
+| FL | 1993-03 | 10,398 | $199.0M |
+| TX | 2009-04 | 5,593 | $161.9M |
+| FL | 2024-06 | 1,569 | $94.2M |
+| TX | 2019-05 | 1,405 | $62.0M |
+| FL | 2020-05 | 900 | $48.4M |
+| TX | 2006-06 | 1,785 | $43.7M |
+| PA | 2020-08 | 1,165 | $42.1M |
+| TX | 1989-08 | 4,066 | $39.7M |
+| TX | 2010-09 | 1,029 | $39.0M |
+| TN | 2021-03 | 897 | $38.3M |
+
+Findings:
+- **Undeclared floods are real but small.** The largest undeclared month is $199M, about 1/70 of Katrina's month.
+- **Texas and Florida account for 7 of the 10**, consistent with frequent local rain flooding in those states.
+- Limitation: matching is at state and month level, so a declaration elsewhere in the same state and month counts as a match even if it covered other counties. A county-level match is possible but county codes differ in format between the two datasets and was not attempted.
