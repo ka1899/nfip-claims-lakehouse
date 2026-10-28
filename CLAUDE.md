@@ -20,7 +20,7 @@ See README.md for business questions and docs/ROADMAP.md for the phased plan.
 - Never commit secrets or raw data. Credentials via .env (gitignored). Data lives in data/ (gitignored).
 - Commit small and often, with clear messages.
 
-## Current status (updated 2026-10-14)
+## Current status (updated 2026-10-28)
 Goal: a resume-worthy end-to-end project by Sunday 2026-10-18. Scope is trimmed (see Plan).
 
 Done
@@ -29,7 +29,11 @@ Done
 - Baseline vs bronze timings in docs/03_performance_notes.md (raw ~13.4k files vs 9 Delta files, first-run speedup ~5.8x count and ~2.6x group by).
 - Khushi's raw profiling queries sql/00_profiling/01 to 07 and docs/00_profiling.md (hers; review, do not rewrite).
 - Silver notebook written: spark/02_silver_claims.py (29 kept columns, snake_case, DECIMAL(18,2) money, blanks to NULL, negative-payment flag, export to Volume workspace.silver.exports). Cast check passed (no values lost, no money rounding). Silver table workspace.silver.fima_nfip_claims written 2026-10-14: 2,721,780 rows, equal to bronze. Exported as one Parquet file to /Volumes/workspace/silver/exports/fima_nfip_claims/ (plus Spark _SUCCESS/_committed/_started marker files). county_code has 62,442 NULLs. Silver cross-checks passed (Khushi's query): 566,351 NULL building payments, 86 negative (amount and flag agree), 150,348 zero.
-- Snowflake: trial started (Standard, AWS). sql/01_staging/00 to 02 run 2026-10-14: NFIP_WH, NFIP.{STAGING,CORE,MARTS}, stage SILVER_STAGE. Export (188 MB Parquet) uploaded via Snowsight; COPY INTO NFIP.STAGING.STG_FIMA_NFIP_CLAIMS loaded 2,721,780 rows, 0 errors. Next: Khushi's staging reconciliation (expected numbers in docs/01_snowflake_load.md), then core star schema.
+- Snowflake: trial started (Standard, AWS). sql/01_staging/00 to 02 run 2026-10-14: NFIP_WH, NFIP.{STAGING,CORE,MARTS}, stage SILVER_STAGE. Export (188 MB Parquet) uploaded via Snowsight; COPY INTO NFIP.STAGING.STG_FIMA_NFIP_CLAIMS loaded 2,721,780 rows, 0 errors. Staging reconciliation passed (Khushi's query 01_staging/03, all 7 checks match).
+- Core: view NFIP.CORE.FCT_CLAIMS (Khushi's SQL, sql/02_core/01_fct_claims.sql), metric definitions in docs/02_metrics.md. Full star schema was cut for time.
+- Disaster declarations: 70,571 rows extracted, prepared by ingestion/prepare_disasters.py, loaded to NFIP.STAGING.STG_DISASTER_DECLARATIONS.
+- Analysis: Khushi's queries sql/04_analysis/01 to 06, findings in docs/04_analysis.md. README rewritten with findings, architecture, data quality table and known gaps (2026-10-28).
+- Possible next: dashboard, data quality test suite, FimaNfipPolicies for Q3/Q4.
 
 Decisions made
 - One branch: work on main (the old claude/... branch can be deleted). Push to main.
